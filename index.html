@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Cosmic Mystery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700;900&family=Be+Vietnam+Pro:wght@300;400;600&display=swap');
+
+        body {
+            background-color: #050b14;
+            color: #e2e8f0;
+            font-family: 'Be Vietnam Pro', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1, h2, .orbitron {
+            font-family: 'Exo 2', sans-serif;
+        }
+
+        /* Starry Background */
+        #star-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* Card Styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 150, 255, 0.1);
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.8s ease-in forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .answer-btn {
+            transition: all 0.3s ease;
+        }
+        .answer-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+            background: rgba(56, 189, 248, 0.2);
+            border-color: #38bdf8;
+            cursor: pointer;
+        }
+        .answer-btn:disabled {
+            cursor: default;
+            transform: none;
+        }
+        .answer-btn.correct {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: #22c55e;
+            color: #86efac;
+        }
+        .answer-btn.wrong {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: #ef4444;
+            opacity: 0.7;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .reveal-text {
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="star-canvas"></canvas>
+
+    <!-- Main Container -->
+    <div id="app-container" class="w-full max-w-md p-6 mx-auto relative z-10">
+        
+        <!-- Intro Screen -->
+        <div id="intro-screen" class="glass-panel rounded-2xl p-8 text-center fade-in">
+            <div class="text-6xl mb-6 text-sky-400">
+                <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <h1 class="text-3xl font-bold mb-4 text-white">Nhiệm vụ rất khả thi: Tốt nghiệp</h1>
+            <p class="mb-8 text-lg text-gray-300">Giải các câu đố sau để nhận tọa độ.</p>
+            <button onclick="startGame()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-8 rounded-full transition-all shadow-[0_0_20px_rgba(14,165,233,0.5)] hover:shadow-[0_0_30px_rgba(14,165,233,0.8)]">
+                Bắt đầu nhiệm vụ 
+            </button>
+        </div>
+
+        <!-- Question Container (Dynamic) -->
+        <div id="quiz-screen" class="glass-panel rounded-2xl p-8 hidden">
+            <div class="flex justify-between items-center mb-6 text-sm text-sky-300 font-bold tracking-widest">
+                <span>Giai đoạn <span id="phase-number">1</span>/3</span>
+                <i class="fa-solid fa-shuttle-space"></i>
+            </div>
+
+            <h2 id="question-text" class="text-xl font-semibold mb-8 leading-relaxed text-white min-h-[6rem] flex items-center">
+                <!-- Question goes here -->
+            </h2>
+
+            <div id="options-container" class="space-y-3">
+                <!-- Buttons go here -->
+            </div>
+
+            <!-- Explanation / Transition area -->
+            <div id="explanation-area" class="hidden mt-6 pt-6 border-t border-white/10 text-center fade-in">
+                <p id="explanation-text" class="text-gray-300 mb-2 italic text-sm"></p>
+                <h3 id="reveal-keyword" class="text-3xl font-bold text-sky-400 mb-4 orbitron reveal-text"></h3>
+                <button id="next-btn" onclick="nextPhase()" class="mt-2 bg-white/10 hover:bg-white/20 text-white py-2 px-6 rounded-lg transition-colors">
+                    Next Phase <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Final Invitation Screen -->
+        <div id="final-screen" class="glass-panel rounded-2xl p-8 text-center hidden">
+            <div class="mb-6 relative inline-block">
+                <div class="absolute inset-0 bg-sky-500 blur-2xl opacity-20 rounded-full"></div>
+                <i class="fa-solid fa-graduation-cap text-7xl text-white relative z-10"></i>
+            </div>
+            
+            <h1 class="text-2xl font-bold text-sky-300 mb-2">Nhiệm vụ hoàn thành</h1>
+            <h2 class="text-4xl font-bold text-white mb-6 orbitron">Bạn đã được mời!</h2>
+            
+            <div class="bg-white/5 rounded-xl p-6 mb-6 border border-white/10 space-y-4">
+                <div class="flex flex-col items-center">
+                    <span class="text-xs uppercase tracking-widest text-gray-400">When</span>
+                    <span class="text-xl font-bold text-sky-200 mt-1">Thứ bảy, ngày 29 tháng 11</span>
+                </div>
+                <div class="w-full h-px bg-white/10"></div>
+                <div class="flex flex-col items-center">
+                    <span class="text-xs uppercase tracking-widest text-gray-400">Time</span>
+                    <span class="text-xl font-bold text-sky-200 mt-1">13:30 - 15:00</span>
+                </div>
+                <div class="w-full h-px bg-white/10"></div>
+                <div class="flex flex-col items-center">
+                    <span class="text-xs uppercase tracking-widest text-gray-400">Where</span>
+                    <span class="text-xl font-bold text-sky-200 mt-1">Trường Đại học Bách khoa, ĐHQG TPHCM Cơ sở 1  </span>
+                </div>
+                <div class="w-full h-px bg-white/10"></div>
+                <div class="flex flex-col items-center">
+                    <span class="text-xs uppercase tracking-widest text-gray-400">Address</span>
+                    <span class="text-xl font-bold text-sky-200 mt-1">268 Lý Thường Kiệt, phường Diên Hồng, TP.HCM </span>
+                </div>
+            </div>
+
+            <p class="text-gray-400 text-sm mb-6">Nếu bạn không thể đến trước 15:00, hãy đến sau 17:30 nhé!</p>
+        
+            
+        </div>
+    
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION --
+        // Updated Logic for November 29th
+        const quizData = [
+            {
+                question: "Vật thể nào trong Hệ Mặt trời đang dần biến mất (tương đương 1 bể bơi Olympic mỗi 30 phút), và tạm thời sẽ không nhìn thấy được từ Trái Đất trong năm 2025?",
+                options: ["Đốm đỏ lớn của Sao Mộc (Jupiter's Great Red Spot)", "Vành đai Sao Thổ (Saturn's Rings)", "Băng ở cực Sao Hỏa (Mars' Polar Ice)"],
+                correctIndex: 1,
+                explanation: "Chính xác! Vành đai Sao Thổ sẽ biến mất trong 100 triệu năm nữa do trọng lực của Sao Thổ (ring's rain). Trong năm 2025, vành đai tạm thời biến mất do sự thay đổi góc nhìn gây ra ảo ảnh thị giác (ring plane crossing).",
+                reveal: "SATURDAY",
+                revealContext: "Thông tin vui: Thứ bảy (Saturday) được đặt tên theo Sao Thổ (Saturn - 'Dies Saturni')."
+            },
+            {
+                question: "Tên của tháng này trong tiếng Anh bắt nguồn từ một từ Latin 'Novem' với nghĩa là số 9.",
+                options: ["Tháng 9 (September)", "Tháng 10 (October)", "Tháng 11 (November)"],
+                correctIndex: 2,
+                explanation: "Chính xác! 'November' từng là tháng thứ 9 trong lịch La Mã cổ đại.",
+                reveal: "NOVEMBER",
+                revealContext: "Thông tin vui: Sau khi lịch thêm vào tháng 1 (January) và tháng 2 (February), tháng 11 vẫn giữ nguyên tên gọi November."
+            },
+            {
+                question: "Mất bao nhiêu năm Trái Đất để Sao Thổ hoàn thành một vòng quỹ đạo quanh Mặt Trời?",
+                options: ["12 năm", "29 năm", "84 năm"],
+                correctIndex: 1,
+                explanation: "Chính xác! Sao Thổ mất khoảng 29.5 năm Trái Đất để hoàn thành quỹ đạo quanh Mặt Trời.",
+                reveal: "29TH",
+                revealContext: "Thông tin vui: Một ngày trên Sao Thổ chỉ kéo dài 10 giờ, và Sao Thổ là hành tinh duy nhất trong hệ Mặt Trời có thể nổi trên mặt nước."
+            }
+        ];
+
+        let currentPhase = 0;
+
+        // --- LOGIC ---
+
+        function startGame() {
+            document.getElementById('intro-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            document.getElementById('quiz-screen').classList.add('fade-in');
+            loadPhase();
+        }
+
+        function loadPhase() {
+            const data = quizData[currentPhase];
+            
+            // Reset UI
+            document.getElementById('explanation-area').classList.add('hidden');
+            document.getElementById('phase-number').innerText = currentPhase + 1;
+            document.getElementById('question-text').innerText = data.question;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            data.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "answer-btn w-full text-left p-4 rounded-xl border border-white/20 bg-white/5 text-lg font-medium text-gray-200 relative overflow-hidden";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            const data = quizData[currentPhase];
+            const allBtns = document.querySelectorAll('.answer-btn');
+
+            if (selectedIndex === data.correctIndex) {
+                // --- CORRECT ANSWER ---
+                // Disable ALL buttons now that we have found the right one
+                allBtns.forEach(b => b.disabled = true);
+
+                // Style the correct button
+                btnElement.classList.add('correct');
+                btnElement.innerHTML += ' <i class="fa-solid fa-check float-right mt-1"></i>';
+                
+                // Reveal the secret
+                showExplanation(data);
+
+            } else {
+                // --- WRONG ANSWER ---
+                // Style ONLY this button as wrong
+                btnElement.classList.add('wrong');
+                btnElement.innerHTML += ' <i class="fa-solid fa-xmark float-right mt-1"></i>';
+                
+                // Disable ONLY this button so they can't click it again
+                btnElement.disabled = true;
+
+                // Do NOT show explanation
+                // Do NOT highlight correct answer
+                // Let them try again
+            }
+        }
+
+        function showExplanation(data) {
+            const expArea = document.getElementById('explanation-area');
+            const expText = document.getElementById('explanation-text');
+            const revealWord = document.getElementById('reveal-keyword');
+
+            // Custom message combining the educational fact + the reveal
+            expText.innerHTML = `${data.explanation}<br><span class="text-sky-300 mt-2 block">${data.revealContext}</span>`;
+            revealWord.innerText = data.reveal;
+
+            expArea.classList.remove('hidden');
+        }
+
+        function nextPhase() {
+            currentPhase++;
+            if (currentPhase < quizData.length) {
+                // Slight animation reset
+                const card = document.getElementById('quiz-screen');
+                card.classList.remove('fade-in');
+                void card.offsetWidth; // trigger reflow
+                card.classList.add('fade-in');
+                loadPhase();
+            } else {
+                showFinalInvite();
+            }
+        }
+
+        function showFinalInvite() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            const final = document.getElementById('final-screen');
+            final.classList.remove('hidden');
+            final.classList.add('fade-in');
+            createConfetti();
+        }
+
+        function copyLink() {
+            const url = window.location.href;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert("Link copied to clipboard!");
+                }).catch(err => {
+                    fallbackCopy(url);
+                });
+            } else {
+                fallbackCopy(url);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert("Link copied to clipboard!");
+            } catch (err) {
+                alert("Could not copy link manually.");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // --- CONFETTI EFFECT (Simple) ---
+        function createConfetti() {
+           // The starfield works well enough, kept simple to ensure 1-file compatibility
+        }
+
+        // --- BACKGROUND VISUALS (Starfield) ---
+        const canvas = document.getElementById('star-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let stars = [];
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            initStars();
+        }
+
+        function initStars() {
+            stars = [];
+            const count = Math.floor((width * height) / 4000); 
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 2,
+                    speed: Math.random() * 0.5 + 0.1,
+                    opacity: Math.random()
+                });
+            }
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = "white";
+            
+            stars.forEach(star => {
+                ctx.globalAlpha = star.opacity;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Twinkle
+                star.opacity += (Math.random() - 0.5) * 0.1;
+                if (star.opacity < 0.1) star.opacity = 0.1;
+                if (star.opacity > 1) star.opacity = 1;
+
+                // Move slowly
+                star.y -= star.speed;
+                if (star.y < 0) star.y = height;
+            });
+
+            requestAnimationFrame(animateStars);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        animateStars();
+
+    </script>
+</body>
+</html>
